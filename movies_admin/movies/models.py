@@ -21,8 +21,8 @@ class UUIDMixin(models.Model):
 
 
 class Genre(TimeStampedMixin, UUIDMixin):
-    name = models.CharField('name', max_length=255)
-    description = models.TextField('description', blank=True)
+    name = models.CharField(_('name'), max_length=255)
+    description = models.TextField(_('description'), blank=True)
 
     class Meta:
         db_table = "content\".\"genre"
@@ -34,7 +34,7 @@ class Genre(TimeStampedMixin, UUIDMixin):
 
 
 class Person(TimeStampedMixin, UUIDMixin):
-    full_name = models.CharField('full_name', max_length=255)
+    full_name = models.CharField(_('full_name'), max_length=255)
 
     class Meta:
         db_table = "content\".\"person"
@@ -47,15 +47,15 @@ class Person(TimeStampedMixin, UUIDMixin):
 
 class Filmwork(TimeStampedMixin, UUIDMixin):
     class FilmworkType(models.TextChoices):
-        MOVIE = "movie", _("Фильм")
-        TV_SHOW = "tv_show", _("Тв Шоу")
+        MOVIE = "movie", _("movie")
+        TV_SHOW = "tv_show", _("tv show")
 
-    title = models.CharField('title', max_length=255)
-    description = models.TextField('description', blank=True)
-    creation_date = models.DateField('creation_date', blank=True)
+    title = models.CharField(_('title'), max_length=255)
+    description = models.TextField(_('description'), blank=True)
+    creation_date = models.DateField(_('creation_date'), blank=True)
     rating = models.FloatField(
-        'rating', blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
-    type = models.TextField('type', choices=FilmworkType.choices)
+        _('rating', ), blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    type = models.TextField(_('type'), choices=FilmworkType.choices)
     genres = models.ManyToManyField(Genre, through='GenreFilmwork')
     personas = models.ManyToManyField(Person, through='PersonFilmwork')
 
@@ -71,7 +71,7 @@ class Filmwork(TimeStampedMixin, UUIDMixin):
 class PersonFilmwork(UUIDMixin):
     film_work = models.ForeignKey('Filmwork', on_delete=models.CASCADE)
     person = models.ForeignKey('Person', on_delete=models.CASCADE)
-    role = models.TextField('role')
+    role = models.TextField(_('role'))
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
