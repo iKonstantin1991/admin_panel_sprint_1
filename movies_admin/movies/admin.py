@@ -7,6 +7,7 @@ class GenreFilmworkInline(admin.TabularInline):
     model = GenreFilmwork
     raw_id_fields = ('genre',)
 
+
 class PersonFilmworkInline(admin.TabularInline):
     model = PersonFilmwork
     raw_id_fields = ('person',)
