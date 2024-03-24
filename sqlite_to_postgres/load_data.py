@@ -13,6 +13,7 @@ from psycopg2.extras import DictCursor
 from dotenv import load_dotenv
 
 load_dotenv()
+psycopg2.extras.register_uuid()
 logging.basicConfig(format="[%(asctime)s] [%(levelname)s] %(message)s", level=logging.INFO)
 
 _CHUNK_SIZE = 100
@@ -83,7 +84,9 @@ class SQLiteExtractor:
             """)
             data = []
             for row in self._curs.fetchall():
-                data.append(table.dataclass(**dict(row)))
+                row = dict(row)
+                row["id"] = UUID(row["id"])
+                data.append(table.dataclass(**row))
             if not data:
                 break
             yield data
