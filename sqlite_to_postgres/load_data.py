@@ -1,6 +1,8 @@
 import os
 from typing import Iterator, Optional, List, Union
 from dataclasses import dataclass, astuple, fields
+from datetime import date
+from uuid import UUID
 from contextlib import contextmanager
 import logging
 import sqlite3
@@ -17,50 +19,42 @@ _CHUNK_SIZE = 100
 
 
 @dataclass(frozen=True)
-class Filmwork:
-    id: str
+class UUIDMixin:
+    id: UUID
+
+
+@dataclass(frozen=True)
+class Filmwork(UUIDMixin):
     title: str
     description: Optional[str]
-    creation_date: str
+    creation_date: date
     file_path: Optional[str]
     rating: Optional[float]
     type: str
-    created: Optional[str]
-    modified: Optional[str]
 
 
 @dataclass(frozen=True)
-class Person:
-    id: str
+class Person(UUIDMixin):
     full_name: str
-    created: Optional[str]
-    modified: Optional[str]
 
 
 @dataclass(frozen=True)
-class Genre:
-    id: str
+class Genre(UUIDMixin):
     name: str
     description: Optional[str]
-    created: Optional[str]
-    modified: Optional[str]
 
 
 @dataclass(frozen=True)
-class GenreFilmwork:
-    id: str
+class GenreFilmwork(UUIDMixin):
     genre_id: str
     film_work_id: Optional[str]
-    created: Optional[str]
 
 
 @dataclass(frozen=True)
-class PersonFilmwork:
-    id: str
+class PersonFilmwork(UUIDMixin):
     person_id: str
     film_work_id: Optional[str]
     role: str
-    created: Optional[str]
 
 
 TableDataClass = Union[Filmwork, Person, Genre, GenreFilmwork, PersonFilmwork]
@@ -80,14 +74,16 @@ class SQLiteExtractor:
     def extract_from_table(self, table: Table) -> Iterator[DataChunk]:
         offset = 0
         while True:
-            self._curs.execute(f"SELECT * FROM {table.name} ORDER BY id LIMIT {_CHUNK_SIZE} OFFSET {offset};")
+            self._curs.execute(f"""
+                SELECT {", ".join([field.name for field in fields(table.dataclass)])}
+                FROM {table.name}
+                ORDER BY id
+                LIMIT {_CHUNK_SIZE}
+                OFFSET {offset}
+            """)
             data = []
             for row in self._curs.fetchall():
-                row = dict(row)
-                row["created"] = row.pop("created_at", None)
-                if "modified" in [field.name for field in fields(table.dataclass)]:
-                    row["modified"] = row.pop("updated_at", None)
-                data.append(table.dataclass(**row))
+                data.append(table.dataclass(**dict(row)))
             if not data:
                 break
             yield data
@@ -126,13 +122,14 @@ def load_from_sqlite(sqlite_conn: sqlite3.Connection, pg_conn: _connection) -> N
     )
     for table in tables:
         logging.info(f"Starting loading data for table: {table.name}")
+        postgres_loader.truncate_table(table)
         for data_chunk in sqlite_extractor.extract_from_table(table):
             postgres_loader.load_to_table(table, data_chunk)
 
 
 @contextmanager
-def _sqlite_conn(db_path: str):
-    conn = sqlite3.connect(db_path)
+def _get_sqlite_conn(db_path: str) -> Iterator[sqlite3.Connection]:
+    conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -148,10 +145,10 @@ if __name__ == "__main__":
         "host": "127.0.0.1",
         "port": 5432,
     }
-    with _sqlite_conn(os.environ.get("SQLITE_PATH")) as sqlite_conn:
+    with _get_sqlite_conn(os.environ.get("SQLITE_PATH")) as sqlite_conn:
         with psycopg2.connect(**dsl, cursor_factory=DictCursor) as pg_conn:
             logging.info("Starting loading data")
             try:
                 load_from_sqlite(sqlite_conn, pg_conn)
             except (psycopg2.Error, sqlite3.Error) as e:
-                logging.error(f"Failed to load data: {e}")
+                logging.error(f"Error has occurred when loaded data: {e}")
