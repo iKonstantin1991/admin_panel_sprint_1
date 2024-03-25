@@ -1,17 +1,12 @@
-from dataclasses import dataclass, fields, astuple
+from dataclasses import fields, astuple
 from typing import List, Iterator
 from uuid import UUID
+import psycopg2
 
-from .models import TableDataClass
+from .models import TableDataClass, Table
 
 DataChunk = List[TableDataClass]
 _CHUNK_SIZE = 100
-
-
-@dataclass(frozen=True)
-class Table:
-    name: str
-    dataclass: TableDataClass
 
 
 class SQLiteExtractor:
@@ -44,14 +39,14 @@ class PostgresLoader:
         self._curs = conn.cursor()
 
     def load_to_table(self, table: Table, data_chunk: DataChunk) -> None:
-        column_names = [field.name for field in fields(table.dataclass)]
-        col_count = ", ".join(["%s"] * len(column_names))
-        args = ",".join(self._curs.mogrify(f"({col_count})", astuple(item)).decode() for item in data_chunk)
-        self._curs.execute(f"""
-            INSERT INTO content.{table.name} ({", ".join(column_names)})
-            VALUES {args}
+        column_names = ", ".join([field.name for field in fields(table.dataclass)])
+        data = [astuple(item) for item in data_chunk]
+        insert_query = f"""
+            INSERT INTO content.{table.name} ({column_names})
+            VALUES %s
             ON CONFLICT DO NOTHING
-        """)
+        """
+        psycopg2.extras.execute_values(self._curs, insert_query, data, page_size=_CHUNK_SIZE)
 
     def truncate_table(self, table: Table) -> None:
         self._curs.execute(f"TRUNCATE content.{table.name} CASCADE")

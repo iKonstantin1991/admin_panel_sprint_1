@@ -44,3 +44,9 @@ class PersonFilmwork(UUIDMixin):
 
 
 TableDataClass = Union[Filmwork, Person, Genre, GenreFilmwork, PersonFilmwork]
+
+
+@dataclass(frozen=True)
+class Table:
+    name: str
+    dataclass: TableDataClass
