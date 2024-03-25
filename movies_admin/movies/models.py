@@ -26,8 +26,8 @@ class Genre(TimeStampedMixin, UUIDMixin):
 
     class Meta:
         db_table = "content\".\"genre"
-        verbose_name = 'Жанр'
-        verbose_name_plural = 'Жанры'
+        verbose_name = _('genre')
+        verbose_name_plural = _('genres')
 
     def __str__(self):
         return self.name
@@ -38,8 +38,8 @@ class Person(TimeStampedMixin, UUIDMixin):
 
     class Meta:
         db_table = "content\".\"person"
-        verbose_name = 'Персона'
-        verbose_name_plural = 'Персоны'
+        verbose_name = _('person')
+        verbose_name_plural = _('personas')
 
     def __str__(self):
         return self.full_name
@@ -61,28 +61,41 @@ class Filmwork(TimeStampedMixin, UUIDMixin):
     personas = models.ManyToManyField(Person, through='PersonFilmwork')
 
     class Meta:
-        db_table = "content\".\"film_work"
-        verbose_name = 'Кинопроизведение'
-        verbose_name_plural = 'Кинопроизведения'
+        db_table = 'content\".\"film_work'
+        verbose_name = _('filmwork')
+        verbose_name_plural = _('filmworks')
+        indexes = [
+            models.Index(fields=['creation_date'], name='film_work_creation_date_idx'),
+        ]
 
     def __str__(self):
         return self.title
 
 
 class PersonFilmwork(UUIDMixin):
-    film_work = models.ForeignKey('Filmwork', on_delete=models.CASCADE)
-    person = models.ForeignKey('Person', on_delete=models.CASCADE)
-    role = models.TextField(_('role'))
+    class RoleType(models.TextChoices):
+        actor = "actor", _("actor")
+        director = "director", _("director")
+        writer = "writer", _("writer")
+
+    film_work = models.ForeignKey(Filmwork, on_delete=models.CASCADE)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
+    role = models.TextField(_('role'), choices=RoleType.choices)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "content\".\"person_film_work"
-
+        constraints = [
+            models.UniqueConstraint(fields=['film_work', 'person', 'role'], name='film_work_person_idx')
+        ]
 
 class GenreFilmwork(UUIDMixin):
-    film_work = models.ForeignKey('Filmwork', on_delete=models.CASCADE)
-    genre = models.ForeignKey('Genre', on_delete=models.CASCADE)
+    film_work = models.ForeignKey(Filmwork, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "content\".\"genre_film_work"
+        constraints = [
+            models.UniqueConstraint(fields=['film_work', 'genre'], name='film_work_genre_idx')
+        ]
