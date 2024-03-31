@@ -32,8 +32,11 @@ def fixture_get_pg_connection() -> Iterator[_connection]:
         "host": "127.0.0.1",
         "port": 5432,
     }
-    with psycopg2.connect(**dsl, cursor_factory=DictCursor) as pg_conn:
-        yield pg_conn
+    conn = psycopg2.connect(**dsl, cursor_factory=DictCursor)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 @pytest.mark.parametrize("table_name", ["film_work", "person", "genre", "genre_film_work", "person_film_work"])
