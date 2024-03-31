@@ -89,6 +89,7 @@ class PersonFilmwork(UUIDMixin):
             models.UniqueConstraint(fields=['film_work', 'person', 'role'], name='film_work_person_idx')
         ]
 
+
 class GenreFilmwork(UUIDMixin):
     film_work = models.ForeignKey(Filmwork, on_delete=models.CASCADE)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
