@@ -34,6 +34,7 @@ def load_from_sqlite(sqlite_conn: sqlite3.Connection, pg_conn: _connection) -> N
         postgres_loader.truncate_table(table)
         for data_chunk in sqlite_extractor.extract_from_table(table):
             postgres_loader.load_to_table(table, data_chunk)
+    pg_conn.commit()
 
 
 @contextmanager

@@ -15,6 +15,7 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
+    '192.168.64.1'
 ]
 
 INSTALLED_APPS = [
@@ -108,3 +109,4 @@ if DEBUG:
     INSTALLED_APPS.append('debug_toolbar')
     MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
     INTERNAL_IPS.append('127.0.0.1')
+    INTERNAL_IPS.append('192.168.64.1')
